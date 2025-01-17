@@ -49,36 +49,61 @@ class PresentationAgent:
         - add_pie_chart
         ---
 
-        ### Examples:**
+        ### **Examples**
 
-        **Example 1:**  
-        **User Query:** *"Create a slide with a bar chart showing sales data and another slide with product features."*  
+        **Example 1: Single Tool Call**  
+        **User Query:** *"Create a slide with a pie chart showing market share distribution."*  
         **Step-by-Step Action:**  
-        1. **Tool:** `add_single_column_chart`  
-        - **Args:** `categories_str="Q1, Q2, Q3, Q4"`, `values_str="5000, 7000, 8000, 6500"`  
-        2. **Tool:** `add_bullet_slide`  
-        - **Args:** `title="Product Features"`, `content="High Performance; User-Friendly; Affordable"`
+        1. **Tool:** `add_pie_chart`  
+        - **Args:**  
+            - `categories_str="Product A, Product B, Product C"`  
+            - `values_str="40, 35, 25"`  
+            - `title="Market Share Distribution"`  
+            - `plot_name="Market Share"`  
 
         ---
 
-        **Example 2:**  
-        **User Query:** *"Add a slide with a company logo and create a comparison table of competitors."*  
+        **Example 2: Two Tool Calls**  
+        **User Query:** *"Add a slide with the company logo and create a bullet slide for core values."*  
         **Step-by-Step Action:**  
         1. **Tool:** `add_image_slide`  
-        - **Args:** `image_path="company_logo.png"`, `caption="Our Company Logo"`  
-        2. **Tool:** `add_table_slide`  
-        - **Args:** `table_data="Brand, Price, Features; Brand A, $500, Basic; Brand B, $700, Premium"`
+        - **Args:**  
+            - `image_path="company_logo.png"`  
+            - `caption="Our Company Logo"`  
+            - `title="Welcome to Our Company"`  
+
+        2. **Tool:** `add_bullet_slide`  
+        - **Args:**  
+            - `title="Core Values"`  
+            - `content="Integrity; Innovation; Customer Focus; Sustainability"`  
 
         ---
 
-        **Example 3:**  
-        **User Query:** *"Create a summary slide with two columns: one for strengths and one for weaknesses."*  
+        **Example 3: Four Tool Calls**  
+        **User Query:** *"Create a business report with a bar chart of sales, a line chart of profit trends, a table of regional performance, and a summary of strategic goals."*  
         **Step-by-Step Action:**  
-        1. **Tool:** `add_two_content_bullet_slide`  
+        1. **Tool:** `add_bar_chart`  
         - **Args:**  
-            - `title="SWOT Analysis"`  
-            - `left_content="Strong Brand; Loyal Customers; Market Leader"`  
-            - `right_content="High Costs; Limited Innovation; Market Saturation"`
+            - `categories_str="Q1, Q2, Q3, Q4"`  
+            - `series_data_str="Sales: 5000, 7000, 8000, 6500"`  
+            - `title="Quarterly Sales Overview"`  
+
+        2. **Tool:** `add_line_chart`  
+        - **Args:**  
+            - `categories_str="Q1, Q2, Q3, Q4"`  
+            - `series_data_str="Profit: 1500, 2000, 2500, 2300"`  
+            - `title="Profit Trends"`  
+
+        3. **Tool:** `add_table_slide`  
+        - **Args:**  
+            - `table_data="Region, Sales, Growth; North, 5000, 10%; South, 7000, 15%; East, 6000, 12%"`  
+            - `title="Regional Performance"`  
+
+        4. **Tool:** `add_two_content_bullet_slide`  
+        - **Args:**  
+            - `title="Strategic Goals"`  
+            - `left_content="Expand Market Share; Launch New Products; Improve Customer Service"`  
+            - `right_content="Reduce Costs; Optimize Supply Chain; Increase Automation"`  
 
         ---
 
@@ -140,8 +165,7 @@ class PresentationAgent:
             return f"Error: {e}"
 
 
-
-if __name__ == "__main__":
+def main():
     ppt = Presentationtools()
     info_for_user = """Example Queries:
     1. Create a slide with a single column chart showing categories A, B, C, D and values 1, 2, 3, 4
@@ -183,4 +207,8 @@ if __name__ == "__main__":
                     print("Currently there are no presentations to edit.")
             continue
         response = agent.process_query(query)
+
+
+if __name__ == "__main__":
+    main()
         
