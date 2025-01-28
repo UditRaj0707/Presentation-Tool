@@ -1,19 +1,44 @@
 TOOL_DESCRIPTIONS = {
-    "add_image_slide": """
-        Use this tool to create a slide that contains ONLY an image with an caption below it.
-        **Do NOT Use When:**  
-        - The slide requires text explanations, descriptions, or bullet points alongside the image.
+    "add_waterfall_chart": """
+        Purpose: Add a slide with a waterfall chart that visually represents incremental changes and totals.
 
+        **Key Use Cases**:
+        - Visualizing changes in data over categories, such as expenses, revenue, or margins.
+        - Showing the impact of positive and negative contributions on a cumulative total.
+        - Displaying totals explicitly if provided or calculated dynamically.
+
+        **Input Format**:
+        - `categories_str`: Comma-separated string of category names (e.g., "Category 1, Category 2, Category 3").
+        - `values_str`: Comma-separated string of incremental values (e.g., "100, 20, 50, -40, 130, -60, 70, 140").
+        - `title`: Title of the slide.
+        - `insert_at`: Optional parameter specifying the slide index where the slide should be inserted. (e.g., insert_at="2")
+          Use this parameter only when the prompt explicitly says "insert a slide at X index."
+
+        **Usage**:
+        add_waterfall_chart(
+            categories_str="Category 1, Category 2, Category 3, Category 4",
+            values_str="100, 20, -10, 30",
+            title="Waterfall Chart Example",
+            insert_at="2"
+        )
+    """,
+    "add_image_slide": """
         Purpose: Add a slide with an image and a caption.
 
         **Key Use Cases**:
         - Displaying product images, charts, or visual content.
         - Adding a visual representation with a caption.
 
-        **Usage**:
-        add_image_slide(image_path='<path_to_image>', caption='Image description', title='Slide Title')
-    """,
+        **Input Format**:
+        - `image_path`: Path to the image file.
+        - `caption`: Caption text for the image.
+        - `title`: Title of the slide.
+        - `insert_at`: Optional parameter specifying the slide index where the slide should be inserted. (e.g., insert_at="2")
+          Use this parameter only when the prompt explicitly says "insert a slide at X index."
 
+        **Usage**:
+        add_image_slide(image_path='<path_to_image>', caption='Image description', title='Slide Title', insert_at=3)
+    """,
     "add_text_with_image_slide": """
         Purpose: Add a slide with a text and image.
 
@@ -21,10 +46,16 @@ TOOL_DESCRIPTIONS = {
         - Combining visual and textual information in one slide.
         - Presenting descriptive text alongside an image.
 
-        **Usage**:
-        add_image_with_text_slide(text_content='Paragraph 1.\\n\\nParagraph 2.', image_path='<path_to_image>', title='Slide Title')
-    """,
+        **Input Format**:
+        - `text_content`: Text content for the slide, separated by paragraphs.
+        - `image_path`: Path to the image file.
+        - `title`: Title of the slide.
+        - `insert_at`: Optional parameter specifying the slide index where the slide should be inserted.
+          Use this parameter only when the prompt explicitly says "insert a slide at X index."
 
+        **Usage**:
+        add_text_with_image_slide(text_content='Paragraph 1.\\n\\nParagraph 2.', image_path='<path_to_image>', title='Slide Title', insert_at="1")
+    """,
     "add_bullet_slide": """
         Purpose: Create a slide with bullet points.
 
@@ -32,10 +63,15 @@ TOOL_DESCRIPTIONS = {
         - Listing key points, ideas, or steps.
         - Structuring information concisely.
 
-        **Usage**:
-        add_bullet_slide(title='Slide Title', content='First point; Second point; Third point')
-    """,
+        **Input Format**:
+        - `title`: Title of the slide.
+        - `content`: Bullet points separated by semicolons.
+        - `insert_at`: Optional parameter specifying the slide index where the slide should be inserted. (e.g., insert_at="2")
+          Use this parameter only when the prompt explicitly says "insert a slide at X index."
 
+        **Usage**:
+        add_bullet_slide(title='Slide Title', content='First point; Second point; Third point', insert_at="4")
+    """,
     "add_two_content_bullet_slide": """
         Purpose: Create a slide with two columns of bullet points.
 
@@ -43,10 +79,16 @@ TOOL_DESCRIPTIONS = {
         - Comparing two sets of information side-by-side.
         - Displaying pros and cons or feature comparisons.
 
-        **Usage**:
-        add_two_content_bullet_slide(title='Slide Title', left_content='Point 1; Point 2; Point 3', right_content='Item A; Item B; Item C')
-    """,
+        **Input Format**:
+        - `title`: Title of the slide.
+        - `left_content`: Bullet points for the left column, separated by semicolons.
+        - `right_content`: Bullet points for the right column, separated by semicolons.
+        - `insert_at`: Optional parameter (integer) specifying the slide index where the slide should be inserted.
+          Use this parameter only when the prompt explicitly says "insert a slide at X index."
 
+        **Usage**:
+        add_two_content_bullet_slide(title='Slide Title', left_content='Point 1; Point 2; Point 3', right_content='Item A; Item B; Item C', insert_at=2)
+    """,
     "add_table_slide": """
         Purpose: Add a comparison table to the presentation.
 
@@ -54,10 +96,15 @@ TOOL_DESCRIPTIONS = {
         - Comparing data in a structured table format.
         - Displaying tabular information clearly.
 
-        **Usage**:
-        add_table_slide(title='Comparison Table', table_data='Header1, Header2; Value1, Value2; Value3, Value4')
-    """,
+        **Input Format**:
+        - `title`: Title of the slide.
+        - `table_data`: Tabular data in the format "Header1, Header2; Value1, Value2; Value3, Value4".
+        - `insert_at`: Optional parameter specifying the slide index where the slide should be inserted. (e.g., insert_at="2")
+          Use this parameter only when the prompt explicitly says "insert a slide at X index."
 
+        **Usage**:
+        add_table_slide(title='Comparison Table', table_data='Header1, Header2; Value1, Value2; Value3, Value4', insert_at="5")
+    """,
     "add_bar_chart": """
         Purpose: Create a slide with a clustered bar chart for comparing multiple data series.
 
@@ -65,14 +112,16 @@ TOOL_DESCRIPTIONS = {
         - Visualizing comparative data across multiple categories.
         - Highlighting differences between series.
 
-        **Usage**:
-        Example 1:
-        add_bar_chart(categories_str='Category A, Category B, Category C', values_str='Sales: 50, 70, 90', title='Sales Comparison')
-        Example 2:
-        add_bar_chart(categories_str='East, West, Midwest', series_data_str='Q1: 19.2, 21.4, 16.7; Q2: 22.3, 28.6, 15.2; Q3: 20.4, 26.3, 14.2', title='Bar Chart Slide')
-        
-    """,
+        **Input Format**:
+        - `categories_str`: Comma-separated string of categories.
+        - `series_data_str`: Data for multiple series in the format "Series1: values; Series2: values".
+        - `title`: Title of the slide.
+        - `insert_at`: Optional parameter specifying the slide index where the slide should be inserted. (e.g., insert_at="2")
+          Use this parameter only when the prompt explicitly says "insert a slide at X index."
 
+        **Usage**:
+        add_bar_chart(categories_str='Category A, Category B, Category C', series_data_str='Sales: 50, 70, 90', title='Sales Comparison', insert_at="1")
+    """,
     "add_line_chart": """
         Purpose: Create a slide with a multi-series line chart.
 
@@ -80,21 +129,35 @@ TOOL_DESCRIPTIONS = {
         - Showing trends over time across multiple series.
         - Visualizing performance metrics or comparisons.
 
-        **Usage**:
-        add_line_chart(categories_str='Q1 Sales, Q2 Sales, Q3 Sales', series_data_str='West: 30, 28, 35; East: 25, 30, 20; Midwest: 20, 18, 25', title='Line Chart Slide')
-    """,
+        **Input Format**:
+        - `categories_str`: Comma-separated string of categories.
+        - `series_data_str`: Data for multiple series in the format "Series1: values; Series2: values".
+        - `title`: Title of the slide.
+        - `insert_at`: Optional parameter specifying the slide index where the slide should be inserted. (e.g., insert_at="2")
+          Use this parameter only when the prompt explicitly says "insert a slide at X index."
 
+        **Usage**:
+        add_line_chart(categories_str='Q1 Sales, Q2 Sales, Q3 Sales', series_data_str='West: 30, 28, 35; East: 25, 30, 20; Midwest: 20, 18, 25', title='Line Chart Slide', insert_at="3")
+    """,
     "add_pie_chart": """
-        Purpose: Create a slide with a pie chart, highlighting category distributions.
+        Purpose: Create a slide with a pie chart, highlighting category distributions and explaining them in bullet points.
 
         **Key Use Cases**:
         - Showing proportional data or percentages.
         - Visualizing category-wise breakdowns.
 
-        **Usage**:
-        add_pie_chart(categories_str='Product A, Product B, Product C', values_str='40, 35, 25', title='Sales Distribution', plot_name='Product Share')
-    """,
+        **Input Format**:
+        - `categories_str`: Comma-separated string of category names.
+        - `values_str`: Comma-separated string of values.
+        - `right_content`: Bullet points for the right column, separated by semicolons.
+        - `title`: Title of the slide.
+        - `plot_name`: Title of the pie chart.
+        - `insert_at`: Optional parameter specifying the slide index where the slide should be inserted. (e.g., insert_at="2")
+          Use this parameter only when the prompt explicitly says "insert a slide at X index."
 
+        **Usage**:
+        add_pie_chart(categories_str='Product A, Product B, Product C', values_str='40, 35, 25', right_content='Product A had the highest demand; Product C had the least demand, title='Sales Distribution', plot_name='Product Share', insert_at="2")
+    """,
     "add_area_chart": """
         Purpose: Create a slide with an area chart.
 
@@ -102,10 +165,17 @@ TOOL_DESCRIPTIONS = {
         - Visualizing cumulative data over time.
         - Highlighting trends with shaded areas.
 
-        **Usage**:
-        add_area_chart(categories_str='Q1, Q2, Q3, Q4', values_str='100, 150, 200, 250', title='Revenue Growth', plot_name='Quarterly Revenue')
-    """,
+        **Input Format**:
+        - `categories_str`: Comma-separated string of categories.
+        - `values_str`: Comma-separated string of values.
+        - `title`: Title of the slide.
+        - `plot_name`: Title of the area chart.
+        - `insert_at`: Optional parameter specifying the slide index where the slide should be inserted. (e.g., insert_at="2")
+          Use this parameter only when the prompt explicitly says "insert a slide at X index."
 
+        **Usage**:
+        add_area_chart(categories_str='Q1, Q2, Q3, Q4', values_str='100, 150, 200, 250', title='Revenue Growth', plot_name='Quarterly Revenue', insert_at="4")
+    """,
     "add_scatter_chart": """
         Purpose: Create a slide with a scatter plot, visualizing relationships between two datasets.
 
@@ -113,7 +183,15 @@ TOOL_DESCRIPTIONS = {
         - Analyzing correlations between two variables.
         - Displaying distribution or variance in data.
 
+        **Input Format**:
+        - `input_x`: Label and values for the x-axis.
+        - `input_y`: Label and values for the y-axis.
+        - `title`: Title of the slide.
+        - `plot_title`: Title of the scatter plot.
+        - `insert_at`: Optional parameter specifying the slide index where the slide should be inserted. (e.g., insert_at="2")
+          Use this parameter only when the prompt explicitly says "insert a slide at X index."
+
         **Usage**:
-        add_scatter_chart(input_x='Production; 100, 200, 300', input_y='Defects; 2, 3, 1', title='Production vs Defects', plot_title='Scatter Plot')
+        add_scatter_chart(input_x='Production; 100, 200, 300', input_y='Defects; 2, 3, 1', title='Production vs Defects', plot_title='Scatter Plot', insert_at="2")
     """
 }

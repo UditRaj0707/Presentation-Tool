@@ -1,5 +1,4 @@
 from tools import Presentationtools
-from tools import use_presentation
 from langchain_groq import ChatGroq
 from langchain_google_genai import ChatGoogleGenerativeAI
 import os
@@ -8,8 +7,11 @@ from langchain_core.messages import HumanMessage, SystemMessage
 load_dotenv()
 
 class PresentationAgent:
-    def __init__(self, llm="llama"):
-        self.presentationtools = Presentationtools()
+    def __init__(self, llm="gemini", mode="normal"):
+        if mode != "normal":
+            self.presentationtools = Presentationtools(mode=mode)
+        else:
+            self.presentationtools = Presentationtools()
 
         if llm == "llama":
             self.llm = ChatGroq(
@@ -47,6 +49,8 @@ class PresentationAgent:
         - add_area_chart
         - add_line_chart
         - add_pie_chart
+        - add_waterfall_chart
+        - add_title_slide
         ---
 
         ### **Examples**
@@ -62,15 +66,27 @@ class PresentationAgent:
             - `plot_name="Market Share"`  
 
         ---
+        **Example 2: Single Tool Call with insertion**  
+        **User Query:** *"Insert a slide with a pie chart showing market share distribution at 2nd index"*  
+        **Step-by-Step Action:**  
+        1. **Tool:** `add_pie_chart`  
+        - **Args:**  
+            - `categories_str="Product A, Product B, Product C"`  
+            - `values_str="40, 35, 25"`  
+            - `title="Market Share Distribution"`  
+            - `plot_name="Market Share"`
+            - `insert_at=2`  
 
-        **Example 2: Two Tool Calls**  
+        ---
+
+        **Example 3: Two Tool Calls**  
         **User Query:** *"Add a slide with the company logo and create a bullet slide for core values."*  
         **Step-by-Step Action:**  
         1. **Tool:** `add_image_slide`  
         - **Args:**  
             - `image_path="company_logo.png"`  
             - `caption="Our Company Logo"`  
-            - `title="Welcome to Our Company"`  
+            - `title="Welcome to Our Company"
 
         2. **Tool:** `add_bullet_slide`  
         - **Args:**  
@@ -79,7 +95,7 @@ class PresentationAgent:
 
         ---
 
-        **Example 3: Four Tool Calls**  
+        **Example 4: Four Tool Calls**  
         **User Query:** *"Create a business report with a bar chart of sales, a line chart of profit trends, a table of regional performance, and a summary of strategic goals."*  
         **Step-by-Step Action:**  
         1. **Tool:** `add_bar_chart`  
@@ -115,11 +131,14 @@ class PresentationAgent:
         - There may be multiple similar tools for a task. Choose the most appropriate one.
         - Maintain the correct execution order.  
         - Respond only after all tool calls are completed.
+        - If user has not given file paths, do not use tools that require file paths.
+        - Whenever terms like "insert at X index" are mentioned, use the `insert_at` parameter. Do not use it otherwise.
+        - Always pass pass integer values for `insert_at` parameter.
 
         """
 
 
-    def process_query(self, query):
+    def process_query(self, query, mode="normal"):
         messages = [SystemMessage(content=self.system_prompt), HumanMessage(content=query)]
 
         try:
@@ -131,7 +150,8 @@ class PresentationAgent:
             tool_calls = response.additional_kwargs.get('tool_calls', [])
             if not tool_calls:
                 print("No tool calls found.")
-                return "Tool executed, but no tool calls were triggered."
+                tool_calls = response.tool_calls
+                
 
             results = []
 
@@ -158,7 +178,7 @@ class PresentationAgent:
                     print(f"Tool '{tool_name}' not found.")
                     results.append(f"Tool '{tool_name}' not found.")
 
-            return results
+            return results[-1]
 
         except Exception as e:
             print(f"Error invoking tool: {e}")
@@ -200,7 +220,7 @@ def main():
                     selected_file = int(input("Enter the number corresponding to the file: "))
                     if selected_file in range(1, len(ppt_files)+1):
                         print(f"Opening {ppt_files[selected_file-1]} for editing...")
-                        use_presentation(folder_path="input", file_path=ppt_files[selected_file-1])
+                        Presentationtools.use_presentation(folder_path="input", file_path=ppt_files[selected_file-1])
                     else:
                         print("Invalid selection.")
                 else:

@@ -6,6 +6,9 @@ from pptx.enum.chart import XL_CHART_TYPE, XL_DATA_LABEL_POSITION
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.chart import XL_LABEL_POSITION, XL_LEGEND_POSITION
+from typing import Optional
+import matplotlib.pyplot as plt
+import numpy as np
 from abc import ABC
 # import Annotated
 from typing import Annotated
@@ -21,19 +24,6 @@ load_dotenv()
 SAVE_PATH = "output/presentation_test.pptx"
 INPUT_PATH = None
 
-def use_presentation(folder_path: str, file_path: str):
-    """
-    Load an existing presentation file
-    Args:
-        file_path: Path to the presentation file
-    """
-    global INPUT_PATH, SAVE_PATH
-    INPUT_PATH = folder_path + "/" + file_path
-    SAVE_PATH = "output/" + file_path
-    print(f"Presentation loaded from: {INPUT_PATH}")
-    print(f"Presentation will be saved to: {SAVE_PATH}")
-    
-
 class Presentationtools:
     """
     Presentationtools class
@@ -41,10 +31,26 @@ class Presentationtools:
     name: str = "presentation_tools"
     description: str = "Tools for interacting with PowerPoint slides"
 
-    def __init__(self):
+    def __init__(self, mode="normal"):
         self.config = {
-            "title_font_size": 24,
+            "title_font_size": 40,
+            "slide_width": 13.33,
+            "slide_height": 7.5
         }
+        self.mode = mode
+
+    @staticmethod
+    def use_presentation(folder_path: str, file_path: str):
+        """
+        Load an existing presentation file
+        Args:
+            file_path: Path to the presentation file
+        """
+        global INPUT_PATH, SAVE_PATH
+        INPUT_PATH = folder_path + "/" + file_path
+        SAVE_PATH = "output/" + file_path
+        print(f"Presentation loaded from: {INPUT_PATH}")
+        print(f"Presentation will be saved to: {SAVE_PATH}")
 
     @staticmethod
     def get_presentation():
@@ -54,7 +60,7 @@ class Presentationtools:
             return Presentation()
 
 
-    def add_image_slide(self, image_path: str, caption: str, title: str):
+    def add_image_slide(self, image_path: str, caption: str, title: str, insert_at: str = None):
         """
         Add a slide having image with caption to the presentation
         Args:
@@ -64,37 +70,50 @@ class Presentationtools:
         """
         if not hasattr(self, "prs"):
             self.prs = self.get_presentation()
-        slide = self.prs.slides.add_slide(self.prs.slide_layouts[5])
+
+        self.prs.slide_width = Inches(13.33) 
+        self.prs.slide_height = Inches(7.5)
+
+        if insert_at is None:
+            slide = self.prs.slides.add_slide(self.prs.slide_layouts[5])
+        else:
+            slide = self.insert_slide(self.prs, layout_index=5, position=int(insert_at))
+
         title_shape = slide.shapes.title
         title_shape.text = title  
-        title_shape.text_frame.paragraphs[0].font.size = Pt(self.config["title_font_size"])
-        title_shape.text_frame.paragraphs[0].font.bold = True
+        title_frame = title_shape.text_frame
+        title_frame.paragraphs[0].font.size = Pt(self.config["title_font_size"])
+        title_frame.paragraphs[0].font.bold = True
+        title_frame.paragraphs[0].alignment = 2  # Center align (0=left, 1=center, 2=right)
         
-        left = Inches(3)  
+        # Center the image horizontally by calculating left position
+        img_width = 4  # inches
+        left = (13.33 - img_width) / 2  # Center horizontally
         top = Inches(2)   
         width = 4
         height = 4
         pic = slide.shapes.add_picture(
             image_path,
-            left,
+            Inches(left),
             top,
             width=Inches(width),
             height=Inches(height)
         )
         
         if caption:
-            left = Inches(3)
+            # Center the caption box under the image
+            left = (13.33 - img_width) / 2  # Match image position
             top = top + Inches(height) + Inches(0.5) 
             width = Inches(4)
             height = Inches(1)
-            txBox = slide.shapes.add_textbox(left, top, width, height)
+            txBox = slide.shapes.add_textbox(Inches(left), top, width, height)
             tf = txBox.text_frame
             tf.text = caption
             tf.fit_text(font_family="Arial", max_size=12, italic=True)
             
         return self.save_presentation()
     
-    def add_text_with_image_slide(self, text_content: str, image_path: str, title: str, **kwargs):
+    def add_text_with_image_slide(self, text_content: str, image_path: str, title: str, insert_at: str = None, **kwargs):
         """
         Add a slide with text on the left half and an image on the right half.
 
@@ -106,7 +125,14 @@ class Presentationtools:
         """
         if not hasattr(self, "prs"):
             self.prs = self.get_presentation()
-        slide = self.prs.slides.add_slide(self.prs.slide_layouts[5])
+
+        self.prs.slide_width = Inches(self.config['slide_width']) 
+        self.prs.slide_height = Inches(self.config['slide_height'])
+
+        if insert_at is None:
+            slide = self.prs.slides.add_slide(self.prs.slide_layouts[5])
+        else:
+            slide = self.insert_slide(self.prs, layout_index=5, position=int(insert_at))
 
         title_shape = slide.shapes.title
         title_shape.text = title
@@ -137,37 +163,58 @@ class Presentationtools:
         file_path = self.save_presentation()
         return f"Slide with image and text created and saved at: {file_path}"
     
-    def add_bullet_slide(self, title: str, content: str):
+    def add_bullet_slide(self, title: str, content: str, insert_at: str = None):
         """
         Create a slide with bullet points
         Args:
-            title: Title of the slide
+            title: Title of the slide 
             content: String of bullet points separated by semicolons
             Example: "First point; Second point; Third point"
         """
         if not hasattr(self, "prs"):
             self.prs = self.get_presentation()
-        slide = self.prs.slides.add_slide(self.prs.slide_layouts[1])
+
+        self.prs.slide_width = Inches(self.config['slide_width']) 
+        self.prs.slide_height = Inches(self.config['slide_height'])
+            
+        if insert_at is None:
+            slide = self.prs.slides.add_slide(self.prs.slide_layouts[5])  # Use blank layout
+        else:
+            slide = self.insert_slide(self.prs, layout_index=5, position=int(insert_at))
+
+        # Add title
         title_shape = slide.shapes.title
         title_shape.text = title 
         title_shape.text_frame.paragraphs[0].font.size = Pt(self.config["title_font_size"])
         title_shape.text_frame.paragraphs[0].font.bold = True
+        title_shape.text_frame.paragraphs[0].alignment = 1
         
-        bullet_points = [point.strip() for point in content.split(';')]
-
-        text_frame = slide.placeholders[1].text_frame
-        text_frame.clear() 
+        # Create textbox for bullet points
+        left = Inches(1)
+        top = Inches(2) 
+        width = Inches(10)
+        height = Inches(5)
+        
+        txBox = slide.shapes.add_textbox(left, top, width, height)
+        text_frame = txBox.text_frame
+        text_frame.word_wrap = True
         
         # Add bullet points
-        for item in bullet_points:
-            paragraph = text_frame.add_paragraph()
-            paragraph.text = item
-            paragraph.level = 0  
-            paragraph.bullet = True
+        bullet_points = [point.strip() for point in content.split(';')]
+        
+        for i, point in enumerate(bullet_points):
+            if i == 0:
+                p = text_frame.paragraphs[0]
+            else:
+                p = text_frame.add_paragraph()
+            p.text = "• " + point
+            p.font.size = Pt(20)
+            # p.font.name = 'Arial'
+            p.space_after = Pt(12)
         
         return self.save_presentation()
     
-    def add_two_content_bullet_slide(self, title: str, left_content: str, right_content: str):
+    def add_two_content_bullet_slide(self, title: str, left_content: str, right_content: str, insert_at: str = None):
         """
         Create a slide with two columns of bullet points
         Args:
@@ -180,37 +227,61 @@ class Presentationtools:
         """
         if not hasattr(self, "prs"):
             self.prs = self.get_presentation()
-        slide = self.prs.slides.add_slide(self.prs.slide_layouts[3])
         
+        # Set slide dimensions for 16:9 aspect ratio
+        self.prs.slide_width = Inches(13.33)
+        self.prs.slide_height = Inches(7.5)
+
+        if insert_at is None:
+            slide = self.prs.slides.add_slide(self.prs.slide_layouts[5])  # Using blank layout
+        else:
+            slide = self.insert_slide(self.prs, layout_index=5, position=int(insert_at))
+        
+        # Add title
         title_shape = slide.shapes.title
         title_shape.text = title  
         title_shape.text_frame.paragraphs[0].font.size = Pt(self.config["title_font_size"])
         title_shape.text_frame.paragraphs[0].font.bold = True
+        title_shape.text_frame.paragraphs[0].alignment = 1
         
-        left_placeholder = slide.placeholders[1]
-        right_placeholder = slide.placeholders[2]
+        # Create left textbox
+        left = Inches(1)
+        top = Inches(2)
+        width = Inches(5)
+        height = Inches(4)
+        left_box = slide.shapes.add_textbox(left, top, width, height)
+        left_frame = left_box.text_frame
+        left_frame.word_wrap = True
+
+        # Add left content with bullet points
+        for i, point in enumerate(left_content.split(';')):
+            if i == 0:
+                p = left_frame.paragraphs[0]
+            else:
+                p = left_frame.add_paragraph()
+            p.text = "• " + point.strip()  # Add bullet character
+            p.font.size = Pt(20)
+            p.space_before = Pt(12)
         
-        left_points = left_content.split(';')
-        left_frame = left_placeholder.text_frame
-        left_frame.clear()
-        for point in left_points:
-            p = left_frame.add_paragraph()
-            p.text = point.strip()
-            p.level = 0
-            p.bullet = True
-        
-        right_points = right_content.split(';')
-        right_frame = right_placeholder.text_frame
-        right_frame.clear()
-        for point in right_points:
-            p = right_frame.add_paragraph()
-            p.text = point.strip()
-            p.level = 0
-            p.bullet = True
+        # Create right textbox
+        left = Inches(7)  # Position this on the right side
+        right_box = slide.shapes.add_textbox(left, top, width, height)
+        right_frame = right_box.text_frame
+        right_frame.word_wrap = True
+
+        # Add right content with bullet points
+        for i, point in enumerate(right_content.split(';')):
+            if i == 0:
+                p = right_frame.paragraphs[0]
+            else:
+                p = right_frame.add_paragraph()
+            p.text = "• " + point.strip()  # Add bullet character
+            p.font.size = Pt(20)
+            p.space_before = Pt(12)
         
         return self.save_presentation()
         
-    def add_table_slide(self, table_data: str, title: str):
+    def add_table_slide(self, table_data: str, title: str, insert_at: str = None):
         """
         Add a comparison table to the presentation from string input
         Args:
@@ -219,7 +290,11 @@ class Presentationtools:
             Example: "Car, Bike; BMW, Harley; Audi, Ducati; Mercedes, Honda"
         """
         if not hasattr(self, "prs"):
-            self.prs = self.get_presentation()      
+            self.prs = self.get_presentation() 
+
+        self.prs.slide_width = Inches(self.config['slide_width']) 
+        self.prs.slide_height = Inches(self.config['slide_height'])
+
         rows = table_data.split(';')
         headers = rows[0].split(',')
         values = [row.split(',') for row in rows[1:]]
@@ -228,26 +303,83 @@ class Presentationtools:
         for i, header in enumerate(headers):
             table_data[header] = [row[i] for row in values]
         
-        slide = self.prs.slides.add_slide(self.prs.slide_layouts[5])
+        if insert_at is None:
+            slide = self.prs.slides.add_slide(self.prs.slide_layouts[5])
+        else:
+            slide = self.insert_slide(self.prs, layout_index=5, position=int(insert_at))
+
         title_shape = slide.shapes.title
         title_shape.text = title 
         title_shape.text_frame.paragraphs[0].font.size = Pt(self.config["title_font_size"])
         title_shape.text_frame.paragraphs[0].font.bold = True
+        title_shape.text_frame.paragraphs[0].alignment = 1
 
+        # Calculate dimensions and position
         rows = len(list(table_data.values())[0]) + 1
         cols = len(table_data.keys())
-        table = slide.shapes.add_table(rows, cols, Inches(2), Inches(2), Inches(6), Inches(4)).table
         
+        # Calculate table width and height based on content
+        max_text_len = max(
+            max(len(str(val)) for vals in table_data.values() for val in vals),
+            max(len(str(key)) for key in table_data.keys())
+        )
+        
+        # Base cell dimensions
+        cell_width = max(1.5, max_text_len * 0.15)  # Minimum 1.5 inches
+        table_width = cell_width * cols
+        cell_height = 0.4  # Base height per cell
+        table_height = cell_height * rows
+        
+        # Maximum allowed dimensions
+        max_width = 11  # Maximum table width (leaving margins)
+        max_height = 5  # Maximum table height (leaving space for title)
+        
+        # Only scale if table exceeds slide bounds
+        if table_width > max_width:
+            scale = max_width / table_width
+            table_width = max_width
+            cell_width *= scale
+            
+        if table_height > max_height:
+            scale = max_height / table_height
+            table_height = max_height
+            cell_height *= scale
+        
+        # Center the table on slide
+        left = (13.33 - table_width) / 2  # Center horizontally
+        top = (7.5 - table_height) / 2 + 0.5  # Center vertically with offset for title
+
+        table = slide.shapes.add_table(rows, cols, Inches(left), Inches(top), 
+                                     Inches(table_width), Inches(table_height)).table
+        
+        # Style the table
         for i, key in enumerate(table_data.keys()):
-            table.cell(0, i).text = key
+            cell = table.cell(0, i)
+            cell.text = key.strip()
+            paragraph = cell.text_frame.paragraphs[0]
+            paragraph.font.bold = True
+            paragraph.font.size = Pt(12)
+            
             for j, value in enumerate(table_data[key]):
-                table.cell(j + 1, i).text = value
+                cell = table.cell(j + 1, i)
+                cell.text = value.strip()
+                paragraph = cell.text_frame.paragraphs[0]
+                paragraph.font.size = Pt(11)
+        
+        # Apply cell padding and alignment
+        for row in table.rows:
+            for cell in row.cells:
+                cell.margin_left = cell.margin_right = Inches(0.1)
+                cell.margin_top = cell.margin_bottom = Inches(0.05)
+                cell.vertical_anchor = 1  # Center vertical alignment
+                for paragraph in cell.text_frame.paragraphs:
+                    paragraph.alignment = 1  # Center horizontal alignment
         
         file_path = self.save_presentation()
         return file_path
 
 
-    def add_bar_chart(self, categories_str: str, series_data_str: str, title: str) -> str:
+    def add_bar_chart(self, categories_str: str, series_data_str: str, title: str, insert_at: str = None) -> str:
         """
         Create a slide with a clustered bar chart for comparing multiple data series.
 
@@ -264,14 +396,21 @@ class Presentationtools:
         """
         if not hasattr(self, "prs"):
             self.prs = self.get_presentation()
+
+        self.prs.slide_width = Inches(self.config['slide_width']) 
+        self.prs.slide_height = Inches(self.config['slide_height'])
         # Create a new slide
-        slide = self.prs.slides.add_slide(self.prs.slide_layouts[5])
+        if insert_at is None:
+            slide = self.prs.slides.add_slide(self.prs.slide_layouts[5])
+        else:
+            slide = self.insert_slide(self.prs, layout_index=5, position=int(insert_at))
 
         # Set slide title with custom font size
         title_shape = slide.shapes.title
         title_shape.text = title
         title_shape.text_frame.paragraphs[0].font.size = Pt(24)
         title_shape.text_frame.paragraphs[0].font.bold = True
+        title_shape.text_frame.paragraphs[0].alignment = 1
 
         # Initialize the chart data
         chart_data = ChartData()
@@ -307,7 +446,7 @@ class Presentationtools:
 
 
 
-    def add_line_chart(self, categories_str: str, series_data_str: str, title: str, **kwargs) -> str:
+    def add_line_chart(self, categories_str: str, series_data_str: str, title: str, insert_at: str = None, **kwargs) -> str:
         """
         Create a slide with a multi-series line chart.
 
@@ -320,11 +459,20 @@ class Presentationtools:
         """
         if not hasattr(self, "prs"):
             self.prs = self.get_presentation()
-        slide = self.prs.slides.add_slide(self.prs.slide_layouts[5])
+
+        self.prs.slide_width = Inches(self.config['slide_width']) 
+        self.prs.slide_height = Inches(self.config['slide_height'])
+
+        if insert_at is None:
+            slide = self.prs.slides.add_slide(self.prs.slide_layouts[5])
+        else:
+            slide = self.insert_slide(self.prs, layout_index=5, position=int(insert_at))
+
         title_shape = slide.shapes.title
         title_shape.text = title 
         title_shape.text_frame.paragraphs[0].font.size = Pt(self.config["title_font_size"])
         title_shape.text_frame.paragraphs[0].font.bold = True
+        title_shape.text_frame.paragraphs[0].alignment = 1
 
         chart_data = CategoryChartData()
         chart_data.categories = [c.strip() for c in categories_str.split(",")]
@@ -335,7 +483,7 @@ class Presentationtools:
             values = [float(v.strip()) for v in series_values.split(",")]
             chart_data.add_series(series_name.strip(), values)
 
-        x, y, cx, cy = Inches(2), Inches(2), Inches(6), Inches(4.5)
+        x, y, cx, cy = Inches(3.5), Inches(2), Inches(6), Inches(4.5)
         slide.shapes.add_chart(XL_CHART_TYPE.LINE_MARKERS, x, y, cx, cy, chart_data)
 
         file_path = self.save_presentation()
@@ -343,28 +491,38 @@ class Presentationtools:
         return f"Slide with multi-series line chart created and saved at: {file_path}"
 
     
-    def add_pie_chart(self, categories_str: str, values_str: str, title: str, plot_name: str) -> str:
+    def add_pie_chart(self, categories_str: str, values_str: str, right_content: str, title: str, plot_name: str, insert_at: str = None) -> str:
         """
         Create a slide with a pie chart including well-formatted category labels.
         Args:
             categories_str: String of categories separated by commas
             values_str: String of values separated by commas
+            right_content: String of bullet points separated by semicolons
             title: Title of the slide
             plot_name: Title of the pie chart
         """
         if not hasattr(self, "prs"):
             self.prs = self.get_presentation()
-        slide = self.prs.slides.add_slide(self.prs.slide_layouts[5])
+
+        self.prs.slide_width = Inches(self.config['slide_width']) 
+        self.prs.slide_height = Inches(self.config['slide_height'])
+
+        if insert_at is None:
+            slide = self.prs.slides.add_slide(self.prs.slide_layouts[5])
+        else:
+            slide = self.insert_slide(self.prs, layout_index=5, position=int(insert_at))
+
         title_shape = slide.shapes.title
         title_shape.text = title  
         title_shape.text_frame.paragraphs[0].font.size = Pt(self.config["title_font_size"])
         title_shape.text_frame.paragraphs[0].font.bold = True
+        title_shape.text_frame.paragraphs[0].alignment = 1
 
         chart_data = CategoryChartData()
         chart_data.categories = [c.strip() for c in categories_str.split(",")]
         chart_data.add_series(plot_name, (float(v.strip()) for v in values_str.split(",")))
 
-        x, y, cx, cy = Inches(2), Inches(2), Inches(6), Inches(4.5)
+        x, y, cx, cy = Inches(1), Inches(2), Inches(6), Inches(4.5)
         chart_shape = slide.shapes.add_chart(XL_CHART_TYPE.PIE, x, y, cx, cy, chart_data)
         chart = chart_shape.chart 
 
@@ -374,12 +532,34 @@ class Presentationtools:
         data_labels.show_category_name = True
         data_labels.show_percentage = True
         data_labels.separator = "\n" 
-        data_labels.position = XL_DATA_LABEL_POSITION.BEST_FIT  
+        data_labels.position = XL_DATA_LABEL_POSITION.BEST_FIT 
+        
+        # Create textbox for bullet points on right side
+        right_textbox = slide.shapes.add_textbox(Inches(8), Inches(2), Inches(4), Inches(4.5))
+        right_frame = right_textbox.text_frame
+        right_frame.word_wrap = True  # Enable word wrap
+        right_frame.clear()  # Clear existing text
+
+        # Add bullet points
+        right_points = [point.strip() for point in right_content.split(';')]
+        for i, point in enumerate(right_points):
+            if i == 0:
+                # Set the first paragraph's text
+                p = right_frame.paragraphs[0]
+                p.text = f"{i+1}. " + point + "\n"
+            else:
+                # Add new paragraphs for subsequent bullet points
+                p = right_frame.add_paragraph()
+                p.text = f"{i+1}. " + point + "\n"
+            
+            # Format bullet points
+            p.level = 0
+            p.font.size = Pt(20)  # Set consistent font size
 
         file_path = self.save_presentation()
         return f"Slide with pie chart created and saved at: {file_path}"
     
-    def add_area_chart(self, categories_str: str, values_str: str, title: str, plot_name : str) -> str:
+    def add_area_chart(self, categories_str: str, values_str: str, title: str, plot_name : str, insert_at: str = None) -> str:
         """
         Create a slide with an area chart
         Args:
@@ -391,23 +571,32 @@ class Presentationtools:
         """
         if not hasattr(self, "prs"):
             self.prs = self.get_presentation()
-        slide = self.prs.slides.add_slide(self.prs.slide_layouts[5])
+
+        self.prs.slide_width = Inches(self.config['slide_width']) 
+        self.prs.slide_height = Inches(self.config['slide_height'])
+
+        if insert_at is None:
+            slide = self.prs.slides.add_slide(self.prs.slide_layouts[5])
+        else:
+            slide = self.insert_slide(self.prs, layout_index=5, position=int(insert_at))
+
         title_shape = slide.shapes.title
         title_shape.text = title  
         title_shape.text_frame.paragraphs[0].font.size = Pt(self.config["title_font_size"])
         title_shape.text_frame.paragraphs[0].font.bold = True
+        title_shape.text_frame.paragraphs[0].alignment = 1
 
         chart_data = CategoryChartData()
         chart_data.categories = [c.strip() for c in categories_str.split(",")]
         chart_data.add_series(plot_name, (float(v.strip()) for v in values_str.split(",")))
 
-        x, y, cx, cy = Inches(2), Inches(2), Inches(6), Inches(4.5)
+        x, y, cx, cy = Inches(4), Inches(2.5), Inches(6), Inches(4.5)
         slide.shapes.add_chart(XL_CHART_TYPE.AREA, x, y, cx, cy, chart_data)
 
         file_path = self.save_presentation()
         return f"Slide with area chart created and saved at: {file_path}"
     
-    def add_scatter_chart(self, input_x: str, input_y: str, title: str, plot_title: str) -> str:
+    def add_scatter_chart(self, input_x: str, input_y: str, title: str, plot_title: str, insert_at: str = None) -> str:
         """
     Creates a scatter plot slide with labeled axes.
 
@@ -442,11 +631,21 @@ class Presentationtools:
         
         if not hasattr(self, "prs"):
             self.prs = self.get_presentation()
-        slide = self.prs.slides.add_slide(self.prs.slide_layouts[5])
+
+        self.prs.slide_width = Inches(self.config['slide_width']) 
+        self.prs.slide_height = Inches(self.config['slide_height'])
+
+        if insert_at is None:
+            slide = self.prs.slides.add_slide(self.prs.slide_layouts[5])
+        else:
+            slide = self.insert_slide(self.prs, layout_index=5, position=int(insert_at))
+
         title_shape = slide.shapes.title
-        title_shape.text = title  
-        title_shape.text_frame.paragraphs[0].font.size = Pt(self.config["title_font_size"])
-        title_shape.text_frame.paragraphs[0].font.bold = True
+        title_shape.text = title
+        title_frame = title_shape.text_frame
+        title_frame.paragraphs[0].font.size = Pt(self.config["title_font_size"]) 
+        title_frame.paragraphs[0].font.bold = True
+        title_frame.paragraphs[0].alignment = 1  
 
         chart_data = XyChartData()
         series = chart_data.add_series(plot_title)
@@ -454,7 +653,7 @@ class Presentationtools:
         for x, y in zip(x_values, y_values):
             series.add_data_point(x, y)
 
-        x, y, cx, cy = Inches(2), Inches(2), Inches(6), Inches(4.5)
+        x, y, cx, cy = Inches(4), Inches(2.5), Inches(6), Inches(4.5)
         chart_shape = slide.shapes.add_chart(XL_CHART_TYPE.XY_SCATTER, x, y, cx, cy, chart_data)
         chart = chart_shape.chart
 
@@ -469,29 +668,132 @@ class Presentationtools:
         return f"Slide with scatter chart (with axis labels) created and saved at: {file_path}"
 
     
-    def get_slide_layout(self):
-        for idx, layout in enumerate(self.prs.slide_layouts):
-            print(f"Layout {idx}: {layout.name}")
-            slide = self.prs.slides.add_slide(layout)
-            for placeholder in slide.placeholders:
-                print(f"\tPlaceholder {placeholder.placeholder_format.idx}: {placeholder.name}")
+    # def get_slide_layout(self):
+    #     for idx, layout in enumerate(self.prs.slide_layouts):
+    #         print(f"Layout {idx}: {layout.name}")
+    #         slide = self.prs.slides.add_slide(layout)
+    #         for placeholder in slide.placeholders:
+    #             print(f"\tPlaceholder {placeholder.placeholder_format.idx}: {placeholder.name}")
+
+    def add_waterfall_chart(self, categories_str: str, values_str: str, title: str, totals_str: Optional[str] = None, insert_at: str = None) -> None:
+        """
+        Create and display a waterfall chart.
+
+        Args:
+            categories_str: Comma-separated string of category names (e.g., "Category 1, Category 2, Category 3").
+            values_str: Comma-separated string of incremental values (e.g., "100, 20, 50, -40, 130, -60, 70, 140").
+            totals_str: Comma-separated string of total values (e.g., "100, None, None, None, 130, None, None, 140").
+                        If not provided, totals will be calculated automatically.
+        """
+        # Parse inputs
+        categories = [c.strip() for c in categories_str.split(",")]
+        values = [float(v.strip()) for v in values_str.split(",")]
+        if totals_str:
+            totals = [float(v.strip()) if v.strip().lower() != "none" else None for v in totals_str.split(",")]
+        else:
+            # Auto-calculate totals
+            totals = []
+            cumulative_sum = values[0]
+            for i, value in enumerate(values):
+                if i == 0:
+                    totals.append(value)
+                elif value == cumulative_sum:
+                    totals.append(value)
+                    cumulative_sum = value
+                else:
+                    totals.append(None)
+                    cumulative_sum += value
+
+        plot_path = self.plot_waterfall_chart(categories, values, totals)
+
+        if not hasattr(self, "prs"):
+            self.prs = self.get_presentation()
+
+        self.prs.slide_width = Inches(self.config['slide_width']) 
+        self.prs.slide_height = Inches(self.config['slide_height'])   
+        if insert_at is None:
+            slide = self.prs.slides.add_slide(self.prs.slide_layouts[5])
+        else:
+            slide = self.insert_slide(self.prs, layout_index=5, position=int(insert_at))
+
+        title_shape = slide.shapes.title
+        title_shape.text = title  
+        title_shape.text_frame.paragraphs[0].font.size = Pt(self.config["title_font_size"])
+        title_shape.text_frame.paragraphs[0].font.bold = True
+        title_shape.text_frame.paragraphs[0].alignment = 1
+
+        left = Inches(0.5)  
+        top = Inches(1.5)   
+        width = 12
+        height = 5.5
+        pic = slide.shapes.add_picture(
+            plot_path,
+            left,
+            top,
+            width=Inches(width),
+            height=Inches(height)
+        )
+
+        file_path = self.save_presentation()
+        return f"Slide with waterfall chart created and saved at: {file_path}"
+    
+    # add a function called add_title_slide in which you can add a title slide to the presentation, title should be in the center of the slide
+    def add_title_slide(self, title: str, insert_at: str = None):
+        """
+        Add a title slide to the presentation with the given title centered on a 16:9 slide.
+        Args:
+            title: Title of the slide
+        """
+        if not hasattr(self, "prs"):
+            self.prs = self.get_presentation()
+            
+        # Set slide dimensions for 16:9 aspect ratio 
+        self.prs.slide_width = Inches(13.33)
+        self.prs.slide_height = Inches(7.5)
+
+        if insert_at is None:
+            slide = self.prs.slides.add_slide(self.prs.slide_layouts[5]) # Use blank layout
+        else:
+            slide = self.insert_slide(self.prs, layout_index=5, position=int(insert_at))
+
+        # Calculate center position
+        left = Inches(1)
+        top = Inches(2.5) # Center vertically
+        width = Inches(11.33) # Full width minus margins
+        height = Inches(2)
+
+        # Add centered textbox
+        txBox = slide.shapes.add_textbox(left, top, width, height)
+        text_frame = txBox.text_frame
+        
+        # Add and format text
+        p = text_frame.paragraphs[0]
+        p.text = title
+        p.font.size = Pt(54)
+        p.font.bold = True
+        p.alignment = 2 # Center alignment
+        
+        file_path = self.save_presentation()
+        return f"Title slide created and saved at: {file_path}"
 
 
     def save_presentation(self):
         """
         Save the presentation to a file
         """
-        print(f"self.save_path: {SAVE_PATH}")
-        self.prs.save(SAVE_PATH)
-        return SAVE_PATH
+        if self.mode == "normal":
+            print(f"self.save_path: {SAVE_PATH}")
+            self.prs.save(SAVE_PATH)
+            return SAVE_PATH
+        else:
+            save_path = f"output/{self.mode}.pptx"
+            print(f"self.save_path: {save_path}")
+            self.prs.save(save_path)
+            return save_path
     
     def get_tools(self):
         print("🔍 Binding tools...")
         return [
-            # StructuredTool.from_function(
-            #     func=self.add_single_column_chart,
-            #     name="add_single_column_chart"
-            # ),
             StructuredTool.from_function(
                 func=lambda **kwargs: self.add_image_slide(**kwargs),
                 name="add_image_slide",
@@ -541,9 +843,112 @@ class Presentationtools:
                 func=self.add_scatter_chart,
                 name="add_scatter_chart",
                 description=TOOL_DESCRIPTIONS.get("add_scatter_chart")
+            ),
+            StructuredTool.from_function(
+                func=self.add_waterfall_chart,
+                name="add_waterfall_chart",
+                description=TOOL_DESCRIPTIONS.get("add_waterfall_chart")
+            ),
+            StructuredTool.from_function(
+                func=self.add_title_slide,
+                name="add_title_slide",
+                description="Add a title slide to the presentation"
             )
         ]
 
+    @staticmethod
+    def plot_waterfall_chart(categories, values, totals, filename="output/waterfall_chart.png"):
+        labels = [f"{v:+}" for v in values]  # Add "+" or "-" to the value labels
+
+        # Initialize cumulative values
+        cumulative = [0]  # Start from baseline (0)
+        bar_positions = []  # Track where each bar should start
+
+        for i, value in enumerate(values):
+            if totals[i] is not None:  # Total bar resets to 0
+                cumulative.append(totals[i])
+                bar_positions.append(0)
+            else:  # Incremental values
+                bar_positions.append(cumulative[-1])
+                cumulative.append(cumulative[-1] + value)
+
+        # Assign colors: green for totals, blue for increases, orange for decreases
+        colors = []
+        for i, value in enumerate(values):
+            if totals[i] is not None:  # Total
+                colors.append("green")
+            elif value > 0:  # Increase
+                colors.append("steelblue")
+            else:  # Decrease
+                colors.append("darkorange")
+
+        # Plot
+        fig, ax = plt.subplots(figsize=(16, 6))
+        bars = ax.bar(categories, values, bottom=bar_positions, color=colors)
+
+        # Add labels to each bar
+        for bar, label in zip(bars, labels):
+            height = bar.get_height()
+            if height > 0:
+                ax.text(bar.get_x() + bar.get_width() / 2, bar.get_y() + height - 10, label, ha="center", va="bottom", fontsize=10)
+            else:
+                ax.text(bar.get_x() + bar.get_width() / 2, bar.get_y() + height - 10, label, ha="center", va="top", fontsize=10)
+
+        # Add title and legend
+        ax.set_title("Waterfall Chart", fontsize=14)
+        ax.set_ylabel("Values", fontsize=12)
+        ax.legend(
+            handles=[
+                plt.Rectangle((0, 0), 1, 1, color="green", label="Total"),
+                plt.Rectangle((0, 0), 1, 1, color="steelblue", label="Increase"),
+                plt.Rectangle((0, 0), 1, 1, color="darkorange", label="Decrease"),
+            ],
+            loc="upper right",
+        )
+
+        # Add grid
+        ax.grid(axis="y", linestyle="--", alpha=0.7)
+
+        # Show plot
+        plt.tight_layout()
+        plt.savefig(filename)
+        
+        return filename
+    
+    @staticmethod
+    def insert_slide(prs, layout_index, position):
+        """
+        Insert a slide at a specific position in the presentation.
+
+        Args:
+            prs (Presentation): The presentation object.
+            layout_index (int): The index of the slide layout to use.
+            position (int): The 0-based position where the slide should be inserted.
+
+        Returns:
+            slide: The newly inserted slide.
+        """
+        # Add a new slide (temporarily at the end)
+        slide = prs.slides.add_slide(prs.slide_layouts[layout_index])
+        
+        # Access the slide ID list
+        slide_id_list = prs.slides._sldIdLst
+
+        # Get the XML element for the new slide
+        new_slide_id = slide_id_list[-1]
+        
+        # Remove the new slide from the slide ID list
+        slide_id_list.remove(new_slide_id)
+
+        # Insert the new slide at the desired position
+        slide_id_list.insert(position, new_slide_id)
+
+        return prs.slides[position]
+
+
+
+if __name__ == "__main__":
+    tool = Presentationtools()
 
 
 
